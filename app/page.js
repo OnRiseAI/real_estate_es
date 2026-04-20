@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import JsonLd, { ORGANIZATION, PRODUCT_OFFERS } from "./components/JsonLd";
 
 const staggerContainer = {
   hidden: {},
@@ -51,6 +52,9 @@ const TIERS = [
 export default function HomePage() {
   return (
     <>
+      <JsonLd data={ORGANIZATION} />
+      <JsonLd data={PRODUCT_OFFERS} />
+
       {/* Hero */}
       <motion.section
         className="mb-24"

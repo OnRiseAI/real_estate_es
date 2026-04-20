@@ -1,6 +1,6 @@
-# voiceaireceptionist.com
+# realestate.voiceaireceptionists.com
 
-A niched-down marketing + live demo site for a voice AI receptionist built specifically for US real estate agents.
+A niched-down marketing + live demo site for a voice AI receptionist built specifically for US real estate agents. First vertical of a planned `voiceaireceptionists.com` multi-subdomain product family (`dental.*`, `restaurants.*`, etc. to follow).
 
 **Status:** Phase 1 scaffold complete (homepage, pricing, demo placeholder). LiveKit demo agent + remaining marketing pages in progress.
 

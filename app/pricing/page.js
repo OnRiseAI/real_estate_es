@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import JsonLd, { PRODUCT_OFFERS, PRICING_FAQ } from "../components/JsonLd";
 
 const TIERS = [
   {
@@ -92,6 +93,9 @@ const fadeUp = {
 export default function PricingPage() {
   return (
     <>
+      <JsonLd data={PRODUCT_OFFERS} />
+      <JsonLd data={PRICING_FAQ} />
+
       <motion.section
         className="text-center mb-16"
         initial="hidden"
