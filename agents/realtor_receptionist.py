@@ -130,25 +130,20 @@ class RealtorReceptionist(Agent):
 server = AgentServer()
 
 
-def _build_personalized_instructions(brand: str, brief: str) -> tuple[str, str]:
-    """Turn the scraped website brief into a custom system prompt + greeting for this session."""
-    brand_clean = (brand or "").strip() or "your brokerage"
+def _build_personalized_instructions(business_name: str) -> tuple[str, str]:
+    """Session-specific system prompt + greeting with the caller's brokerage name."""
+    name = (business_name or "").strip() or "your brokerage"
     personalized_prompt = (
         SYSTEM_PROMPT
         + "\n\n---\n"
         + f"PERSONALIZATION OVERRIDE:\n"
-        + f"For this session, you are the AI receptionist for {brand_clean}. "
-        + "Use the brand name, style, and information below to answer questions naturally. "
-        + "If asked about a specific property or service mentioned on their website, cite details "
-        + "from the brief. If asked about something NOT in the brief, say honestly that you'd need "
-        + "to pass that on to the agent and offer to take a message.\n\n"
-        + "WEBSITE BRIEF (this is cheat-sheet context, NOT a script):\n"
-        + brief.strip()
+        + f"For this session, you are the AI receptionist for {name}. "
+        + f"Whenever you would mention the brokerage by name, say '{name}'. "
+        + f"Whenever you would name the agent, say they are a Realtor at {name}."
     )
     personalized_greeting = (
-        f"Greet the caller warmly as the receptionist for {brand_clean}. "
-        f"Say something like '{brand_clean}, this is Mia — how can I help you today?' "
-        "Keep it under one breath."
+        f"Greet the caller warmly as the receptionist for {name}. "
+        f"Say: '{name}, this is Mia — how can I help you today?' Keep it under one breath."
     )
     return personalized_prompt, personalized_greeting
 
@@ -171,11 +166,10 @@ async def entrypoint(ctx):
     if raw_metadata:
         try:
             meta = json.loads(raw_metadata)
-            brief = (meta.get("brief") or "").strip()
-            brand = (meta.get("brand") or "").strip()
-            if brief:
-                instructions, greeting = _build_personalized_instructions(brand, brief)
-                log.info("Personalized session: brand=%r brief=%d", brand, len(brief))
+            business_name = (meta.get("business_name") or "").strip()
+            if business_name:
+                instructions, greeting = _build_personalized_instructions(business_name)
+                log.info("Personalized session: business_name=%r", business_name)
         except Exception as err:
             log.warning("Failed to parse metadata: %s", err)
     else:

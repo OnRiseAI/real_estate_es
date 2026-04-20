@@ -6,41 +6,7 @@ import { useState } from "react";
 import LiveKitDemo from "../components/LiveKitDemo";
 
 export default function DemoPage() {
-  const [url, setUrl] = useState("");
-  const [personalizing, setPersonalizing] = useState(false);
-  const [brand, setBrand] = useState("");
-  const [brief, setBrief] = useState("");
-  const [error, setError] = useState("");
-
-  async function handlePersonalize(e) {
-    e.preventDefault();
-    setPersonalizing(true);
-    setError("");
-    setBrand("");
-    setBrief("");
-    try {
-      const res = await fetch("/api/personalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      setBrand(data.brand || "");
-      setBrief(data.brief || "");
-    } catch (err) {
-      setError(err?.message || "Couldn't personalize");
-    } finally {
-      setPersonalizing(false);
-    }
-  }
-
-  function reset() {
-    setBrand("");
-    setBrief("");
-    setUrl("");
-    setError("");
-  }
+  const [businessName, setBusinessName] = useState("");
 
   return (
     <section className="max-w-2xl mx-auto py-8">
@@ -54,68 +20,35 @@ export default function DemoPage() {
           Talk to <span className="text-[#2DD4BF]">Mia</span>
         </h1>
         <p className="mt-4 text-[15px] text-[#A0A0AB] leading-relaxed max-w-lg mx-auto">
-          Try the default demo as a Realtor at &ldquo;Sunbelt Realty,&rdquo; or drop in your own website and
-          Mia will greet as if she worked there.
+          Optionally type your brokerage name below and Mia will greet as if she worked there.
+          Leave it blank for the default &ldquo;Sunbelt Realty&rdquo; demo.
         </p>
       </motion.div>
 
-      {/* Personalization panel */}
+      {/* Business name input */}
       <motion.div
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-        className={`mb-6 p-6 rounded-2xl border transition-colors ${brief ? "border-[#2DD4BF]/40 bg-[#2DD4BF]/5" : "border-[#1A1A1F] bg-[#0E0E12]"}`}
+        className="mb-6 p-6 rounded-2xl border border-[#1A1A1F] bg-[#0E0E12]"
       >
-        {brief ? (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 text-[#2DD4BF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#2DD4BF]">Personalized</span>
-            </div>
-            <h3 className="text-[16px] font-bold text-white mb-1">Mia is ready with <span className="text-[#2DD4BF]">{brand}</span>&rsquo;s info</h3>
-            <p className="text-[13px] text-[#A0A0AB] mb-4">
-              She&rsquo;s read the homepage and will answer as if she worked there.
-            </p>
-            <button
-              onClick={reset}
-              className="text-[12px] font-semibold text-[#6B6B76] hover:text-[#2DD4BF]"
-            >
-              Use a different website
-            </button>
+        <label className="block">
+          <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#2DD4BF]/70">
+            Your brokerage name
+          </span>
+          <input
+            type="text"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            placeholder="e.g. Solvilla Real Estate"
+            maxLength={120}
+            className="mt-3 w-full px-4 py-3 rounded-xl border border-[#1A1A1F] bg-[#0A0A0E] focus:border-[#2DD4BF]/50 focus:outline-none text-[15px] text-white placeholder-[#44444D]"
+          />
+        </label>
+        {businessName && (
+          <div className="mt-3 text-[12px] text-[#2DD4BF]">
+            Mia will answer as &ldquo;{businessName}&rdquo; for this call.
           </div>
-        ) : (
-          <form onSubmit={handlePersonalize}>
-            <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#2DD4BF]/70 mb-2">
-              Optional
-            </div>
-            <h3 className="text-[16px] font-bold text-white mb-1">Personalize Mia with your website</h3>
-            <p className="text-[13px] text-[#A0A0AB] mb-4">
-              Paste your real estate site and Mia will greet as if she worked there — your brand, your voice.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="yourrealestate.com"
-                disabled={personalizing}
-                className="flex-1 px-4 py-3 rounded-xl border border-[#1A1A1F] bg-[#0A0A0E] focus:border-[#2DD4BF]/50 focus:outline-none text-[14px] text-white placeholder-[#44444D]"
-              />
-              <button
-                type="submit"
-                disabled={personalizing || !url.trim()}
-                className="px-5 py-3 rounded-xl bg-[#2DD4BF] hover:bg-[#5EEAD4] disabled:bg-[#1A1A1F] disabled:text-[#6B6B76] text-[#07070A] text-[13px] font-bold whitespace-nowrap transition-all"
-              >
-                {personalizing ? "Reading…" : "Personalize"}
-              </button>
-            </div>
-            {error && <div className="mt-3 text-[12px] text-[#F87171]">{error}</div>}
-            <div className="mt-3 text-[11px] text-[#44444D]">
-              We scrape the homepage for the demo only — nothing stored.
-            </div>
-          </form>
         )}
       </motion.div>
 
@@ -125,7 +58,7 @@ export default function DemoPage() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       >
-        <LiveKitDemo brand={brand} brief={brief} />
+        <LiveKitDemo businessName={businessName.trim()} />
       </motion.div>
 
       <motion.div

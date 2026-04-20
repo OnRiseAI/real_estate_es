@@ -18,8 +18,7 @@ export async function POST(req) {
   const roomName = body.room_name || `realtor-demo-${Date.now()}`;
   const identity = body.participant_identity || `caller-${Date.now()}`;
   const participantName = body.participant_name || "Demo Caller";
-  const brand = (body.brand || "").toString().slice(0, 200);
-  const brief = (body.brief || "").toString().slice(0, 6000);
+  const businessName = (body.business_name || "").toString().trim().slice(0, 120);
 
   const at = new AccessToken(apiKey, apiSecret, {
     identity,
@@ -35,9 +34,8 @@ export async function POST(req) {
     canPublishData: true,
   });
 
-  // Per-session data rides on the agent dispatch so the Python agent can read
-  // it via ctx.job.metadata in entrypoint.
-  const dispatchMetadata = brief ? JSON.stringify({ brand, brief }) : "";
+  // Per-session data travels on the agent dispatch — read via ctx.job.metadata.
+  const dispatchMetadata = businessName ? JSON.stringify({ business_name: businessName }) : "";
 
   at.roomConfig = {
     agents: [{ agentName: "mia-realtor", metadata: dispatchMetadata }],
@@ -47,6 +45,6 @@ export async function POST(req) {
     serverUrl: livekitUrl,
     participantToken: await at.toJwt(),
     roomName,
-    personalized: Boolean(brief),
+    personalized: Boolean(businessName),
   });
 }
