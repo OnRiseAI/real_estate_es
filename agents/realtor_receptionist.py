@@ -131,7 +131,7 @@ def prewarm(proc):
     proc.userdata["vad"] = silero.VAD.load()
 
 
-server = AgentServer(prewarm_fnc=prewarm)
+server = AgentServer(setup_fnc=prewarm)
 
 
 def _build_personalized_instructions(business_name: str) -> tuple[str, str, str]:
