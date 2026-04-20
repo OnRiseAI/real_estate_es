@@ -18,7 +18,7 @@ const STATES = {
   ERROR: "error",
 };
 
-export default function LiveKitDemo({ brand = "", brief = "", catalogId = "", domain = "" }) {
+export default function LiveKitDemo({ brand = "", brief = "" }) {
   const [state, setState] = useState(STATES.IDLE);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -47,7 +47,7 @@ export default function LiveKitDemo({ brand = "", brief = "", catalogId = "", do
       const tokenRes = await fetch("/api/livekit-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(brief ? { brand, brief, catalogId, domain } : {}),
+        body: JSON.stringify(brief ? { brand, brief } : {}),
       });
       if (!tokenRes.ok) throw new Error(`Token request failed (${tokenRes.status})`);
       const { serverUrl, participantToken } = await tokenRes.json();

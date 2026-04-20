@@ -1,46 +1,11 @@
 import FirecrawlApp from "@mendable/firecrawl-js";
-import { after } from "next/server";
-import { getCatalog, saveCatalog, catalogId, normalizeDomain } from "../../lib/catalog";
-import { extractListingsFromPage, runFullCrawl } from "./crawl";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const FIRECRAWL_KEY = process.env.FIRECRAWL_API_KEY;
-const BRIEF_CHAR_CAP = 6000;
 const PAGE_CHAR_CAP = 2500;
-const CACHE_FRESH_SECONDS = 60 * 60 * 24; // 24h
-
-const LISTING_PATH_HINTS = [
-  "/properties", "/property", "/listings", "/listing",
-  "/for-sale", "/for-rent", "/homes", "/real-estate",
-  "/propiedades", "/propiedad", "/en-venta", "/inmuebles",
-  "/immobilier", "/immobilien", "/vendita",
-];
-
-function findListingsPageUrl(homepageMarkdown, origin) {
-  if (!homepageMarkdown) return null;
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-  for (const m of homepageMarkdown.matchAll(linkRegex)) {
-    const href = m[2].trim();
-    if (!href) continue;
-    const lower = href.toLowerCase();
-    if (LISTING_PATH_HINTS.some((hint) => lower.includes(hint))) {
-      try {
-        return new URL(href, origin).toString();
-      } catch {
-        continue;
-      }
-    }
-  }
-  return null;
-}
-
-function isFresh(record) {
-  if (!record?.indexedAt) return false;
-  const age = (Date.now() - new Date(record.indexedAt).getTime()) / 1000;
-  return age < CACHE_FRESH_SECONDS;
-}
+const BRIEF_CHAR_CAP = 6000;
 
 export async function POST(req) {
   if (!FIRECRAWL_KEY) {
@@ -54,49 +19,24 @@ export async function POST(req) {
     return Response.json({ error: "invalid json" }, { status: 400 });
   }
 
-  let rawUrl = (body?.url || "").trim();
-  if (!rawUrl) return Response.json({ error: "website URL required" }, { status: 400 });
-  if (!/^https?:\/\//i.test(rawUrl)) rawUrl = "https://" + rawUrl;
+  let url = (body?.url || "").trim();
+  if (!url) return Response.json({ error: "website URL required" }, { status: 400 });
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
 
-  let domain;
+  let hostname;
   try {
-    domain = new URL(rawUrl).hostname.replace(/^www\./, "");
+    hostname = new URL(url).hostname.replace(/^www\./, "");
   } catch {
     return Response.json({ error: "invalid URL" }, { status: 400 });
   }
 
-  const catId = catalogId(domain);
-
-  // 1. Cache check — only return cached if we have something worth serving.
-  // Bust stale entries where lightCatalog is empty (usually a failed extract) so
-  // the next visit triggers a fresh scrape with the latest code.
-  const cached = await getCatalog(domain);
-  const cachedHasListings =
-    cached &&
-    ((cached.lightCatalog || []).length > 0 ||
-      (cached.fullCatalogStatus === "ready" && (cached.fullCatalog || []).length > 0));
-  if (cached && isFresh(cached) && cached.brief && cachedHasListings) {
-    return Response.json({
-      ok: true,
-      cached: true,
-      brand: cached.brand,
-      catalogId: catId,
-      brief: cached.brief,
-      lightCount: (cached.lightCatalog || []).length,
-      fullCount: (cached.fullCatalog || []).length,
-      fullCatalogStatus: cached.fullCatalogStatus || "pending",
-    });
-  }
-
   const firecrawl = new FirecrawlApp({ apiKey: FIRECRAWL_KEY });
-  const origin = `https://${normalizeDomain(domain)}`;
 
-  // 2. Sync path: homepage scrape + brand brief + discover listings page + extract top listings.
   let homepageMd = "";
   let homepageTitle = "";
   let homepageDescription = "";
   try {
-    const res = await firecrawl.scrapeUrl(origin, {
+    const res = await firecrawl.scrapeUrl(url, {
       formats: ["markdown"],
       onlyMainContent: true,
       timeout: 20000,
@@ -113,48 +53,20 @@ export async function POST(req) {
     );
   }
 
-  const brand = homepageTitle || domain;
-
   const brief = [
-    `BRAND: ${brand}`,
-    `WEBSITE: ${origin}`,
+    `BRAND: ${homepageTitle || hostname}`,
+    `WEBSITE: ${url}`,
     homepageDescription ? `DESCRIPTION: ${homepageDescription}` : null,
     "",
     "HOMEPAGE EXCERPT:",
     homepageMd,
   ].filter(Boolean).join("\n").slice(0, BRIEF_CHAR_CAP);
 
-  // Try to find and extract listings from the index page.
-  let lightCatalog = [];
-  const listingsUrl = findListingsPageUrl(homepageMd, origin);
-  if (listingsUrl) {
-    const listings = await extractListingsFromPage(firecrawl, listingsUrl);
-    lightCatalog = listings.slice(0, 8);
-  }
-
-  // Save sync data to KV with fullCatalogStatus: pending.
-  await saveCatalog(domain, {
-    domain: normalizeDomain(domain),
-    brand,
-    brief,
-    lightCatalog,
-    fullCatalogStatus: "pending",
-    indexedAt: new Date().toISOString(),
-  });
-
-  // 3. Async path: kick off full crawl (fire-and-forget).
-  after(async () => {
-    await runFullCrawl({ domain, firecrawlKey: FIRECRAWL_KEY });
-  });
-
   return Response.json({
     ok: true,
-    cached: false,
-    brand,
-    catalogId: catId,
+    brand: homepageTitle || hostname,
+    hostname,
+    briefLength: brief.length,
     brief,
-    lightCount: lightCatalog.length,
-    fullCount: 0,
-    fullCatalogStatus: "pending",
   });
 }

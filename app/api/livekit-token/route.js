@@ -19,9 +19,7 @@ export async function POST(req) {
   const identity = body.participant_identity || `caller-${Date.now()}`;
   const participantName = body.participant_name || "Demo Caller";
   const brand = (body.brand || "").toString().slice(0, 200);
-  const brief = (body.brief || "").toString().slice(0, 6000); // hard cap for metadata safety
-  const catalogId = (body.catalogId || "").toString().slice(0, 64);
-  const domain = (body.domain || "").toString().slice(0, 200);
+  const brief = (body.brief || "").toString().slice(0, 6000);
 
   const at = new AccessToken(apiKey, apiSecret, {
     identity,
@@ -37,12 +35,9 @@ export async function POST(req) {
     canPublishData: true,
   });
 
-  // Per-session data travels on the agent dispatch (not room metadata). The Python agent
-  // reads this via ctx.job.metadata in entrypoint. Room-level metadata does NOT propagate
-  // reliably to dispatched agents — this is a gotcha in livekit-agents v1.5.
-  const dispatchMetadata = brief
-    ? JSON.stringify({ brand, brief, catalogId, domain })
-    : "";
+  // Per-session data rides on the agent dispatch so the Python agent can read
+  // it via ctx.job.metadata in entrypoint.
+  const dispatchMetadata = brief ? JSON.stringify({ brand, brief }) : "";
 
   at.roomConfig = {
     agents: [{ agentName: "mia-realtor", metadata: dispatchMetadata }],
