@@ -85,7 +85,10 @@ class RealtorReceptionist(Agent):
         self._domain = domain
 
     async def on_enter(self):
-        await self.session.generate_reply(instructions=self._greeting)
+        # Kept for compatibility; primary greeting is fired explicitly after
+        # session.start() in entrypoint below. This is a no-op safety net —
+        # generating twice would talk over itself.
+        pass
 
     @function_tool()
     async def schedule_showing(
@@ -282,6 +285,10 @@ async def entrypoint(ctx):
             ),
         ),
     )
+    # Explicit greeting after start — matches the livekit-agents SKILL pattern.
+    # The on_enter hook isn't firing reliably on v1.5.4 + gpt-5-mini with long prompts;
+    # calling generate_reply here ensures speech scheduling is active.
+    await session.generate_reply(instructions=greeting)
 
 
 if __name__ == "__main__":

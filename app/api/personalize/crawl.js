@@ -46,22 +46,20 @@ export function isListingUrl(url) {
 export async function extractListingsFromPage(firecrawl, url) {
   try {
     const res = await firecrawl.scrapeUrl(url, {
-      formats: [
-        "markdown",
-        {
-          type: "json",
-          schema: {
-            type: "object",
-            properties: {
-              listings: {
-                type: "array",
-                items: PROPERTY_SCHEMA,
-                description: "Property listings shown on this page. Empty array if none.",
-              },
+      formats: ["markdown", "json"],
+      jsonOptions: {
+        schema: {
+          type: "object",
+          properties: {
+            listings: {
+              type: "array",
+              items: PROPERTY_SCHEMA,
+              description: "Property listings shown on this page. Empty array if none.",
             },
           },
         },
-      ],
+        prompt: "Extract every real-estate property listing shown on this page into the `listings` array. Skip navigation, blog posts, and non-property content. If unsure about a field, omit it.",
+      },
       onlyMainContent: true,
       timeout: 25000,
     });
@@ -77,12 +75,11 @@ export async function extractListingsFromPage(firecrawl, url) {
 async function extractOneListing(firecrawl, url) {
   try {
     const res = await firecrawl.scrapeUrl(url, {
-      formats: [
-        {
-          type: "json",
-          schema: PROPERTY_SCHEMA,
-        },
-      ],
+      formats: ["json"],
+      jsonOptions: {
+        schema: PROPERTY_SCHEMA,
+        prompt: "Extract the single property listing on this page. If this page is not a single listing (e.g. search results, blog, contact), return an empty object.",
+      },
       onlyMainContent: true,
       timeout: 20000,
     });
