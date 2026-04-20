@@ -59,10 +59,8 @@ personalization overrides are supplied below.
 """
 
 
-DEFAULT_GREETING = (
-    "Greet the caller warmly. Say: 'Sunbelt Realty, this is Mia — "
-    "how can I help you today?' Keep it under one breath."
-)
+DEFAULT_GREETING_TEXT = "Sunbelt Realty, this is Mia — how can I help you today?"
+DEFAULT_GREETING = f"Greet the caller warmly. Say: '{DEFAULT_GREETING_TEXT}' Keep it under one breath."
 
 
 class RealtorReceptionist(Agent):
@@ -127,11 +125,17 @@ class RealtorReceptionist(Agent):
         return f"Text sent to {phone}."
 
 
-server = AgentServer()
+def prewarm(proc):
+    """Load the silero VAD model once per worker process instead of once per call.
+    Cuts 3-5s off cold-start latency for the first greeting."""
+    proc.userdata["vad"] = silero.VAD.load()
 
 
-def _build_personalized_instructions(business_name: str) -> tuple[str, str]:
-    """Session-specific system prompt + greeting with the caller's brokerage name."""
+server = AgentServer(prewarm_fnc=prewarm)
+
+
+def _build_personalized_instructions(business_name: str) -> tuple[str, str, str]:
+    """Session-specific system prompt + greeting + direct greeting text."""
     name = (business_name or "").strip() or "your brokerage"
     personalized_prompt = (
         SYSTEM_PROMPT
@@ -141,11 +145,12 @@ def _build_personalized_instructions(business_name: str) -> tuple[str, str]:
         + f"Whenever you would mention the brokerage by name, say '{name}'. "
         + f"Whenever you would name the agent, say they are a Realtor at {name}."
     )
-    personalized_greeting = (
+    greeting_text = f"{name}, this is Mia — how can I help you today?"
+    personalized_greeting_instr = (
         f"Greet the caller warmly as the receptionist for {name}. "
-        f"Say: '{name}, this is Mia — how can I help you today?' Keep it under one breath."
+        f"Say: '{greeting_text}' Keep it under one breath."
     )
-    return personalized_prompt, personalized_greeting
+    return personalized_prompt, personalized_greeting_instr, greeting_text
 
 
 @server.rtc_session(agent_name="mia-realtor")
@@ -154,6 +159,7 @@ async def entrypoint(ctx):
     # Also fall back to room metadata for safety.
     instructions = SYSTEM_PROMPT
     greeting = DEFAULT_GREETING
+    greeting_text = DEFAULT_GREETING_TEXT
     raw_metadata = ""
     for source in ("job", "room"):
         obj = ctx.job if source == "job" else getattr(ctx, "room", None)
@@ -168,7 +174,7 @@ async def entrypoint(ctx):
             meta = json.loads(raw_metadata)
             business_name = (meta.get("business_name") or "").strip()
             if business_name:
-                instructions, greeting = _build_personalized_instructions(business_name)
+                instructions, greeting, greeting_text = _build_personalized_instructions(business_name)
                 log.info("Personalized session: business_name=%r", business_name)
         except Exception as err:
             log.warning("Failed to parse metadata: %s", err)
@@ -179,7 +185,7 @@ async def entrypoint(ctx):
         stt="deepgram/flux-general",
         llm="openai/gpt-5-mini",
         tts="cartesia/sonic-3:9626c31c-bec5-4cca-baa8-f8ba9e84c8bc",
-        vad=silero.VAD.load(),
+        vad=ctx.proc.userdata.get("vad") or silero.VAD.load(),
         turn_handling=TurnHandlingOptions(turn_detection=MultilingualModel()),
     )
     await session.start(
@@ -196,8 +202,9 @@ async def entrypoint(ctx):
             ),
         ),
     )
-    # Explicit greeting fires speech scheduling — matches SKILL example pattern.
-    await session.generate_reply(instructions=greeting)
+    # Direct TTS greeting — skips the LLM roundtrip entirely. Saves 1-2s and
+    # guarantees the brokerage name is pronounced exactly as typed.
+    await session.say(greeting_text, allow_interruptions=True)
 
 
 if __name__ == "__main__":
