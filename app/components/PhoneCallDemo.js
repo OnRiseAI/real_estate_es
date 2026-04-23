@@ -205,176 +205,301 @@ export default function PhoneCallDemo({
     : subtitleIdle;
 
   return (
-    <div className="relative w-full max-w-[360px] mx-auto">
-      {/* Ambient teal glow behind the phone */}
+    <div className="relative w-full max-w-[380px] mx-auto">
+      <audio ref={audioElRef} autoPlay playsInline />
+
+      {/* Soft ambient warm glow behind phone */}
       <div
         aria-hidden
         className="absolute inset-0 -z-10 blur-3xl opacity-60 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 70% 60% at 50% 40%, rgba(45,212,191,0.35) 0%, rgba(13,148,136,0.15) 45%, transparent 75%)",
+            "radial-gradient(ellipse 70% 60% at 50% 45%, rgba(200,90,60,0.22) 0%, rgba(27,30,40,0.08) 40%, transparent 75%)",
         }}
       />
 
-      {/* Phone shell */}
+      {/* Phone frame — no status bar, no chrome, pure product surface */}
       <div
-        className="relative rounded-[44px] p-[3px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.9)]"
+        className="relative overflow-hidden"
         style={{
+          aspectRatio: "9 / 18",
+          borderRadius: 52,
           background:
-            "linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 40%, rgba(45,212,191,0.12) 100%)",
+            "linear-gradient(180deg, #1A1619 0%, #0D0A0B 55%, #0A0808 100%)",
+          boxShadow:
+            "0 50px 100px -30px rgba(27,30,40,0.45), 0 0 0 1px rgba(232,144,118,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
         }}
       >
-        <div className="rounded-[41px] bg-[#07070A] overflow-hidden border border-[#141419]">
-          <audio ref={audioElRef} autoPlay playsInline />
-
-          {/* Status bar */}
-          <div className="flex items-center justify-between px-7 pt-4 pb-2 text-white/70 text-[11px] font-semibold tracking-wide">
-            <span>{clock}</span>
-            <div className="flex items-center gap-1.5">
-              <SignalBars className="w-[16px] h-[10px]" />
-              <WifiIcon className="w-[15px] h-[10px]" />
-              <div className="flex items-center gap-[2px] ml-1">
-                <div className="w-[20px] h-[10px] rounded-[2px] border border-white/50 relative">
-                  <div className="absolute inset-[1.5px] rounded-[1px] bg-white/80" style={{ width: "60%" }} />
-                </div>
-                <div className="w-[1px] h-[4px] bg-white/50 rounded-full" />
-              </div>
+        {/* Inner content — stack: identity | photo | cta */}
+        <div className="flex flex-col h-full px-8 py-12">
+          {/* Identity — top */}
+          <div className="text-center">
+            <div
+              className="text-[9px] font-bold tracking-[0.32em] uppercase mb-3"
+              style={{ color: "#E89076", opacity: 0.9 }}
+            >
+              {state === STATES.IDLE
+                ? "Live demo"
+                : state === STATES.CONNECTING
+                ? "Connecting"
+                : state === STATES.ACTIVE
+                ? "On call"
+                : state === STATES.ENDED
+                ? "Call ended"
+                : "Error"}
+            </div>
+            <div
+              className="leading-none"
+              style={{
+                fontFamily: "Fraunces, serif",
+                fontWeight: 500,
+                fontSize: 34,
+                color: "#F5EFE4",
+                letterSpacing: "-0.015em",
+              }}
+            >
+              {agentName}
+            </div>
+            <div
+              className="text-[11px] mt-2 font-medium"
+              style={{ color: "rgba(245,239,228,0.45)", letterSpacing: "0.02em" }}
+            >
+              {state === STATES.ACTIVE
+                ? formatTime(duration)
+                : "AI receptionist · Costa del Sol"}
             </div>
           </div>
 
-          {/* Body */}
-          <div className="px-6 pt-3 pb-6 min-h-[460px] flex flex-col">
-            {/* Header */}
-            <div className="text-center mt-2 mb-8">
-              <div className="text-[12px] font-bold tracking-[0.14em] uppercase text-[#6B6B76] mb-1">
-                {state === STATES.IDLE ? "Voice AI Receptionist" : subtitle}
-              </div>
-              <div className="text-[26px] font-bold text-white tracking-[-0.01em]">{agentName}</div>
-              <div className="text-[13px] text-[#6B6B76] mt-0.5">
-                {state === STATES.IDLE ? subtitle : statusLabel}
-              </div>
-            </div>
-
-            {/* Avatar + rings */}
-            <div className="relative mx-auto mb-10 mt-2" style={{ width: 180, height: 180 }}>
+          {/* Photo — hero */}
+          <div className="flex-1 flex items-center justify-center py-8">
+            <div className="relative" style={{ width: 196, height: 196 }}>
+              {/* Idle pulse rings */}
               {state === STATES.IDLE && (
                 <>
-                  <span className="absolute inset-0 rounded-full border border-[#2DD4BF]/30" style={{ animation: "phone-ring 2.4s ease-out infinite" }} />
-                  <span className="absolute inset-0 rounded-full border border-[#2DD4BF]/30" style={{ animation: "phone-ring 2.4s ease-out infinite", animationDelay: "0.8s" }} />
-                  <span className="absolute inset-0 rounded-full border border-[#2DD4BF]/30" style={{ animation: "phone-ring 2.4s ease-out infinite", animationDelay: "1.6s" }} />
-                </>
-              )}
-              {state === STATES.ACTIVE && (
-                <>
                   <span
-                    className="absolute rounded-full bg-[#2DD4BF]/20"
+                    aria-hidden
+                    className="absolute inset-[-8px] rounded-full"
                     style={{
-                      inset: agentSpeaking ? "-12px" : "-6px",
-                      transition: "inset 200ms ease-out",
-                      filter: "blur(8px)",
+                      border: "1px solid rgba(232,144,118,0.18)",
+                      animation: "phone-ring 3s ease-out infinite",
                     }}
                   />
                   <span
-                    className="absolute rounded-full border border-[#2DD4BF]/50"
+                    aria-hidden
+                    className="absolute inset-[-8px] rounded-full"
                     style={{
-                      inset: "-4px",
-                      animation: "phone-ring 1.8s ease-out infinite",
+                      border: "1px solid rgba(232,144,118,0.18)",
+                      animation: "phone-ring 3s ease-out infinite",
+                      animationDelay: "1.5s",
                     }}
                   />
                 </>
               )}
 
+              {/* Active breathing glow */}
+              {state === STATES.ACTIVE && (
+                <span
+                  aria-hidden
+                  className="absolute inset-[-18px] rounded-full"
+                  style={{
+                    background:
+                      "radial-gradient(circle, rgba(232,144,118,0.45) 0%, rgba(200,90,60,0.15) 40%, transparent 75%)",
+                    filter: "blur(20px)",
+                    transform: agentSpeaking ? "scale(1.15)" : "scale(1)",
+                    opacity: agentSpeaking ? 0.9 : 0.55,
+                    transition:
+                      "transform 400ms ease-out, opacity 400ms ease-out",
+                  }}
+                />
+              )}
+
+              {/* Cream circle fallback — visible only if /mia.png missing */}
               <div
-                className="absolute inset-[18px] rounded-full flex items-center justify-center text-[#07070A] shadow-[0_20px_40px_-10px_rgba(45,212,191,0.6)]"
+                aria-hidden
+                className="absolute inset-0 rounded-full flex items-center justify-center"
                 style={{
                   background:
-                    "radial-gradient(circle at 35% 30%, #7EEED8 0%, #2DD4BF 40%, #0D9488 100%)",
+                    "linear-gradient(135deg, #F5EFE4 0%, #EFE7D6 60%, #E3D6BE 100%)",
                 }}
               >
-                <span className="text-[56px] font-extrabold tracking-[-0.04em]">
+                <span
+                  style={{
+                    fontFamily: "Fraunces, serif",
+                    fontSize: 88,
+                    fontWeight: 500,
+                    fontStyle: "italic",
+                    color: "#1B1E28",
+                    letterSpacing: "-0.04em",
+                    lineHeight: 1,
+                  }}
+                >
                   {agentName.charAt(0)}
                 </span>
               </div>
-            </div>
 
-            {/* Mic hint / error */}
-            <div className="text-center mb-5 h-5">
-              {state === STATES.IDLE && (
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#6B6B76]">
-                  <MicIcon className="w-3 h-3" />
-                  <span>Microphone access required</span>
-                </div>
-              )}
-              {state === STATES.CONNECTING && (
-                <div className="text-[11px] font-semibold text-[#A0A0AB] animate-pulse">
-                  Establishing secure connection…
-                </div>
-              )}
-              {state === STATES.ACTIVE && (
-                <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[#2DD4BF]">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-[#2DD4BF] opacity-40" style={{ animation: "ring-pulse 2s ease-out infinite" }} />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#2DD4BF]" />
-                  </span>
-                  {agentSpeaking ? "Mia is speaking" : "Listening to you"}
-                </div>
-              )}
-              {state === STATES.ERROR && errorMsg && (
-                <div className="text-[11px] font-semibold text-[#F87171] px-4 truncate">
-                  {errorMsg}
-                </div>
-              )}
-              {state === STATES.ENDED && (
-                <div className="text-[11px] font-semibold text-[#6B6B76]">
-                  Thanks for the call.
-                </div>
-              )}
+              {/* Real photo */}
+              <img
+                src="/mia.png"
+                alt={agentName}
+                onError={(e) => {
+                  e.currentTarget.style.visibility = "hidden";
+                }}
+                className="absolute inset-0 w-full h-full rounded-full object-cover"
+                style={{
+                  boxShadow:
+                    "0 30px 60px -20px rgba(0,0,0,0.55), inset 0 0 0 2px rgba(232,144,118,0.15)",
+                }}
+              />
             </div>
+          </div>
 
-            {/* Action button(s) */}
-            <div className="mt-auto flex items-center justify-center gap-10">
-              {state === STATES.IDLE && (
+          {/* CTA — bottom */}
+          <div className="flex flex-col items-center gap-3">
+            {state === STATES.IDLE && (
+              <>
                 <button
+                  type="button"
                   onClick={startCall}
-                  aria-label="Start call with Mia"
-                  className="group relative flex items-center justify-center w-[68px] h-[68px] rounded-full bg-[#22C55E] hover:bg-[#16A34A] transition-all shadow-[0_15px_40px_-10px_rgba(34,197,94,0.7)] hover:scale-[1.04] active:scale-[0.98]"
+                  aria-label="Tap to call Mia"
+                  className="px-8 py-3.5 rounded-full text-[13px] font-bold tracking-[0.04em] transition-all"
+                  style={{
+                    background: "#A6472E",
+                    color: "#F5EFE4",
+                    boxShadow:
+                      "0 14px 36px -8px rgba(166,71,46,0.6), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#8A3A27";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#A6472E";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
                 >
-                  <span className="absolute inset-0 rounded-full bg-[#22C55E]/40 animate-ping" />
-                  <PhoneIcon className="relative w-7 h-7 text-white" />
+                  Tap to call Mia
                 </button>
-              )}
-              {state === STATES.CONNECTING && (
-                <button
-                  disabled
-                  className="flex items-center justify-center w-[68px] h-[68px] rounded-full bg-[#22C55E]/60 shadow-[0_15px_40px_-10px_rgba(34,197,94,0.5)] cursor-wait"
+                <div
+                  className="text-[9px] font-bold tracking-[0.24em] uppercase"
+                  style={{ color: "rgba(245,239,228,0.38)" }}
                 >
-                  <PhoneIcon className="w-7 h-7 text-white animate-pulse" />
-                </button>
-              )}
-              {state === STATES.ACTIVE && (
+                  Speak any language · 2 min
+                </div>
+              </>
+            )}
+
+            {state === STATES.CONNECTING && (
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="flex items-center gap-1.5"
+                  style={{ color: "rgba(245,239,228,0.6)" }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.2s" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ animationDelay: "0.4s" }} />
+                </div>
+                <div
+                  className="text-[11px] font-semibold"
+                  style={{ color: "rgba(245,239,228,0.5)" }}
+                >
+                  Connecting
+                </div>
+              </div>
+            )}
+
+            {state === STATES.ACTIVE && (
+              <>
+                <div
+                  className="inline-flex items-center gap-2 text-[11px] font-semibold"
+                  style={{ color: "#E89076" }}
+                >
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span
+                      className="absolute inline-flex h-full w-full rounded-full opacity-50"
+                      style={{
+                        background: "#E89076",
+                        animation: "ring-pulse 2s ease-out infinite",
+                      }}
+                    />
+                    <span
+                      className="relative inline-flex rounded-full h-1.5 w-1.5"
+                      style={{ background: "#E89076" }}
+                    />
+                  </span>
+                  {agentSpeaking ? "Mia is speaking" : "Listening"}
+                </div>
                 <button
+                  type="button"
                   onClick={endCall}
                   aria-label="End call"
-                  className="flex items-center justify-center w-[68px] h-[68px] rounded-full bg-[#EF4444] hover:bg-[#DC2626] transition-all shadow-[0_15px_40px_-10px_rgba(239,68,68,0.7)] hover:scale-[1.04] active:scale-[0.98]"
+                  className="px-6 py-2.5 rounded-full text-[11px] font-bold tracking-[0.08em] uppercase transition-all"
+                  style={{
+                    background: "rgba(245,239,228,0.08)",
+                    color: "#F5EFE4",
+                    border: "1px solid rgba(245,239,228,0.2)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#A6472E";
+                    e.currentTarget.style.borderColor = "#A6472E";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(245,239,228,0.08)";
+                    e.currentTarget.style.borderColor = "rgba(245,239,228,0.2)";
+                  }}
                 >
-                  <PhoneIcon className="w-7 h-7 text-white" muted />
+                  End call
                 </button>
-              )}
-              {(state === STATES.ENDED || state === STATES.ERROR) && (
-                <button
-                  onClick={reset}
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-full border border-[#2DD4BF]/40 hover:bg-[#2DD4BF]/10 text-[#2DD4BF] text-[13px] font-bold tracking-[-0.01em] transition-colors"
-                >
-                  <PhoneIcon className="w-4 h-4" />
-                  {state === STATES.ERROR ? "Try again" : "Call again"}
-                </button>
-              )}
-            </div>
+              </>
+            )}
 
-            {/* Caption */}
-            <div className="text-center mt-6 text-[10px] font-semibold tracking-[0.08em] uppercase text-[#44444D]">
-              Calls last up to 10 minutes · English only
-            </div>
+            {state === STATES.ENDED && (
+              <>
+                <div
+                  className="text-[11px]"
+                  style={{ color: "rgba(245,239,228,0.55)" }}
+                >
+                  Duration · {formatTime(duration)}
+                </div>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="px-7 py-3 rounded-full text-[12px] font-bold tracking-[0.04em] transition-all"
+                  style={{
+                    background: "#A6472E",
+                    color: "#F5EFE4",
+                    boxShadow:
+                      "0 14px 36px -8px rgba(166,71,46,0.6), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#8A3A27")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#A6472E")}
+                >
+                  Call again
+                </button>
+              </>
+            )}
+
+            {state === STATES.ERROR && (
+              <>
+                <div
+                  className="text-[10px] max-w-[240px] text-center"
+                  style={{ color: "#E89076" }}
+                >
+                  {errorMsg}
+                </div>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="px-6 py-2.5 rounded-full text-[11px] font-bold tracking-[0.08em] uppercase transition-all"
+                  style={{
+                    border: "1px solid rgba(245,239,228,0.3)",
+                    color: "#F5EFE4",
+                    background: "transparent",
+                  }}
+                >
+                  Try again
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -38,7 +38,7 @@ export async function POST(req) {
   const dispatchMetadata = businessName ? JSON.stringify({ business_name: businessName }) : "";
 
   at.roomConfig = {
-    agents: [{ agentName: "mia-realtor", metadata: dispatchMetadata }],
+    agents: [{ agentName: "Mia_Real_Estate", metadata: dispatchMetadata }],
   };
 
   return Response.json({
