@@ -81,6 +81,23 @@ if not PERSONALIZED_GREETING_TEMPLATE:
 DEFAULT_GREETING = f"Greet the caller warmly. Say: '{DEFAULT_GREETING_TEXT}' Keep it under one breath."
 
 
+def _greeting_prefix(hour) -> str:
+    """Return 'Good morning' / 'Good afternoon' / 'Good evening' based on the caller's
+    local hour (0-23). Empty string if hour is missing or invalid — caller falls back
+    to the un-prefixed greeting."""
+    try:
+        h = int(hour) if hour is not None else None
+    except (TypeError, ValueError):
+        h = None
+    if h is None or h < 0 or h > 23:
+        return ""
+    if 5 <= h < 12:
+        return "Good morning"
+    if 12 <= h < 18:
+        return "Good afternoon"
+    return "Good evening"
+
+
 class RealtorReceptionist(Agent):
     """Simple voice receptionist. Reads prompts from markdown, echoes the
     business name in the greeting. No function tools, no CRM writes, no
@@ -131,6 +148,8 @@ async def entrypoint(ctx):
     instructions = SYSTEM_PROMPT
     greeting = DEFAULT_GREETING
     greeting_text = DEFAULT_GREETING_TEXT
+    business_name = ""
+    caller_local_hour = None
     raw_metadata = ""
     for source in ("job", "room"):
         obj = ctx.job if source == "job" else getattr(ctx, "room", None)
@@ -144,6 +163,7 @@ async def entrypoint(ctx):
         try:
             meta = json.loads(raw_metadata)
             business_name = (meta.get("business_name") or "").strip()
+            caller_local_hour = meta.get("caller_local_hour")
             if business_name:
                 instructions, greeting, greeting_text = _build_personalized_instructions(business_name)
                 log.info("Personalized session: business_name=%r", business_name)
@@ -151,6 +171,19 @@ async def entrypoint(ctx):
             log.warning("Failed to parse metadata: %s", err)
     else:
         log.info("No session metadata — using default Sunbelt persona")
+
+    # Prepend time-of-day prefix if the browser told us the caller's local hour.
+    prefix = _greeting_prefix(caller_local_hour)
+    if prefix:
+        greeting_text = f"{prefix}, {greeting_text}"
+        if business_name:
+            greeting = (
+                f"Greet the caller warmly as the receptionist for {business_name}. "
+                f"Say: '{greeting_text}' Keep it under one breath."
+            )
+        else:
+            greeting = f"Greet the caller warmly. Say: '{greeting_text}' Keep it under one breath."
+        log.info("Greeting prefix=%r (caller_local_hour=%r)", prefix, caller_local_hour)
 
     session = AgentSession(
         stt="deepgram/flux-general",
