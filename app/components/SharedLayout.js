@@ -98,24 +98,17 @@ function EditorialHeader() {
             Voice <span style={{ fontStyle: "italic", color: "#1B4965" }}>Receptionist</span>
           </span>
         </Link>
-        <div className="hidden sm:flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <Link
             href="#pricing"
-            className="text-[13px] font-semibold transition-colors"
+            className="hidden sm:inline-flex text-[13px] font-semibold transition-colors"
             style={{ color: "#1B4965" }}
           >
             Pricing
           </Link>
           <Link
-            href="/demo"
-            className="text-[13px] font-semibold transition-colors"
-            style={{ color: "#1B4965" }}
-          >
-            Full demo
-          </Link>
-          <Link
             href="#pricing"
-            className="text-[13px] font-bold px-4 py-2 rounded-full transition-all"
+            className="inline-flex text-[13px] font-bold px-4 py-2 rounded-full transition-all"
             style={{
               background: "#C85A3C",
               color: "#F5EFE4",

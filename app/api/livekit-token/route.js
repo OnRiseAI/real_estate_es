@@ -19,6 +19,11 @@ export async function POST(req) {
   const identity = body.participant_identity || `caller-${Date.now()}`;
   const participantName = body.participant_name || "Demo Caller";
   const businessName = (body.business_name || "").toString().trim().slice(0, 120);
+  const callerLocalHour = Number.isInteger(body.caller_local_hour)
+    && body.caller_local_hour >= 0
+    && body.caller_local_hour <= 23
+      ? body.caller_local_hour
+      : null;
 
   const at = new AccessToken(apiKey, apiSecret, {
     identity,
@@ -35,7 +40,12 @@ export async function POST(req) {
   });
 
   // Per-session data travels on the agent dispatch — read via ctx.job.metadata.
-  const dispatchMetadata = businessName ? JSON.stringify({ business_name: businessName }) : "";
+  const metaPayload = {};
+  if (businessName) metaPayload.business_name = businessName;
+  if (callerLocalHour !== null) metaPayload.caller_local_hour = callerLocalHour;
+  const dispatchMetadata = Object.keys(metaPayload).length
+    ? JSON.stringify(metaPayload)
+    : "";
 
   at.roomConfig = {
     agents: [{ agentName: "Mia_Real_Estate", metadata: dispatchMetadata }],

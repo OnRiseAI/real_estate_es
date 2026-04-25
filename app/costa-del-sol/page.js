@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import JsonLd from "../components/JsonLd";
 import PhoneCallDemo from "../components/PhoneCallDemo";
 
@@ -43,8 +43,8 @@ const WEDGE = [
   },
   {
     label: "The language problem",
-    title: "Fluent in your buyers' language.",
-    body: "A German investor, a Saudi buyer, a Swedish couple, a Tokyo-based client — Mia meets each caller in their own language. Fifteen of them, from Spanish and German to Arabic, Chinese and Japanese. She qualifies the enquiry cleanly. The message that lands on your phone is written in English, so your follow-up stays simple even when the call wasn't.",
+    title: "More of your international buyers stay on the line.",
+    body: "Mia meets the German investor, the Saudi family, the Swedish couple and the Tokyo-based client each in their own language — fifteen in total, from Spanish and German to Arabic, Chinese and Japanese. The lead lands on your phone in clean English, so your follow-up's fast even when the call wasn't.",
   },
   {
     label: "The follow-up problem",
@@ -404,6 +404,60 @@ export default function CostaDelSolPage() {
   const audioRef = useRef(null);
   const [playingCode, setPlayingCode] = useState(null);
   const [billingYearly, setBillingYearly] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const trimmedBusiness = businessName.trim();
+  const displayBusiness = trimmedBusiness || "Coastline Estates";
+
+  // Auto-typing placeholder — cycles examples so visitors see they can type their own.
+  const [animatedPlaceholder, setAnimatedPlaceholder] = useState("");
+  useEffect(() => {
+    if (trimmedBusiness) return; // user is typing — leave them alone
+    const examples = [
+      "Costa Estates",
+      "Sol & Mar Properties",
+      "Marbella Homes",
+      "Andalucía Living",
+      "Sotogrande Realty",
+    ];
+    let cancelled = false;
+    let exampleIdx = 0;
+    let charIdx = 0;
+    let mode = "typing"; // typing | holding | deleting
+    let timer;
+
+    const tick = () => {
+      if (cancelled) return;
+      const target = examples[exampleIdx];
+      if (mode === "typing") {
+        charIdx += 1;
+        setAnimatedPlaceholder(target.slice(0, charIdx));
+        if (charIdx >= target.length) {
+          mode = "holding";
+          timer = setTimeout(tick, 1600);
+        } else {
+          timer = setTimeout(tick, 55 + Math.random() * 50);
+        }
+      } else if (mode === "holding") {
+        mode = "deleting";
+        timer = setTimeout(tick, 0);
+      } else {
+        charIdx -= 1;
+        setAnimatedPlaceholder(target.slice(0, Math.max(charIdx, 0)));
+        if (charIdx <= 0) {
+          mode = "typing";
+          exampleIdx = (exampleIdx + 1) % examples.length;
+          timer = setTimeout(tick, 350);
+        } else {
+          timer = setTimeout(tick, 25 + Math.random() * 20);
+        }
+      }
+    };
+    timer = setTimeout(tick, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [trimmedBusiness]);
 
   const playLanguageSample = (code) => {
     // Stop whatever's currently playing
@@ -485,36 +539,64 @@ export default function CostaDelSolPage() {
                 className={`${SERIF} text-[clamp(3rem,6.5vw,5.6rem)] leading-[0.98] tracking-[-0.025em]`}
                 style={{ color: PALETTE.ink, fontWeight: 500 }}
               >
-                Mia takes the call your office missed{" "}
+                Missed calls,{" "}
                 <span style={{ fontStyle: "italic", color: PALETTE.sea }}>
-                  at 10pm.
+                  booked viewings.
                 </span>
               </motion.h1>
 
               <motion.p
                 variants={fadeUp}
-                className="mt-8 text-[18px] leading-[1.6] font-medium max-w-xl"
-                style={{ color: PALETTE.inkSoft }}
+                className="mt-8 text-[20px] md:text-[22px] leading-[1.35] font-semibold max-w-xl"
+                style={{ color: PALETTE.ink, letterSpacing: "-0.005em" }}
               >
-                She speaks your buyers' language — fifteen of them, including
-                Spanish, German, Arabic, Japanese, Chinese and Portuguese. Takes
-                the enquiry, sends you a proper note inside sixty seconds.
+                Your office shuts at 7. Your buyers call till midnight.
+                <span className="block mt-1.5">Mia answers.</span>
               </motion.p>
 
-              <motion.div variants={fadeUp} className="mt-10 flex flex-wrap items-center gap-4">
-                <Link
-                  href="/demo"
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-[14px] font-bold tracking-[-0.005em] transition-all"
-                  style={{
-                    background: PALETTE.terracotta,
-                    color: PALETTE.cream,
-                    boxShadow: "0 18px 40px -14px rgba(200,90,60,0.55)",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = PALETTE.terracottaDeep)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = PALETTE.terracotta)}
-                >
-                  Hear Mia answer an enquiry → 2 min
-                </Link>
+              {/* Brokerage name input — Mia greets as if she works there */}
+              <motion.div variants={fadeUp} className="mt-10 max-w-md">
+                <label className="block">
+                  <div
+                    className="text-[10px] font-bold tracking-[0.22em] uppercase mb-2"
+                    style={{ color: PALETTE.sea }}
+                  >
+                    Enter your business name &amp; speak with Mia
+                  </div>
+                  <input
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder={animatedPlaceholder || " "}
+                    maxLength={120}
+                    className={`${SERIF} w-full bg-transparent border-0 border-b-[1.5px] text-[20px] md:text-[22px] leading-[1.3] tracking-[-0.005em] py-2 focus:outline-none transition-colors placeholder:text-[#1B1E28] placeholder:opacity-100`}
+                    style={{
+                      color: PALETTE.ink,
+                      borderColor: trimmedBusiness ? PALETTE.terracotta : PALETTE.rule,
+                      fontWeight: 400,
+                    }}
+                  />
+                </label>
+                <div className="mt-2 h-4">
+                  {trimmedBusiness ? (
+                    <div
+                      className="text-[10px] font-semibold tracking-[0.08em] uppercase"
+                      style={{ color: PALETTE.terracotta }}
+                    >
+                      Mia answers as &ldquo;{trimmedBusiness}&rdquo;
+                    </div>
+                  ) : (
+                    <div
+                      className="text-[11px]"
+                      style={{ color: PALETTE.muted, fontStyle: "italic" }}
+                    >
+                      Leave blank for Coastline Estates
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="mt-6 flex flex-wrap items-center gap-4">
                 <Link
                   href="#pricing"
                   className="inline-flex items-center gap-2 text-[14px] font-semibold underline underline-offset-[6px] decoration-1"
@@ -526,8 +608,51 @@ export default function CostaDelSolPage() {
 
             </div>
 
-            <motion.div variants={fadeUp} className="w-full lg:justify-self-end">
-              <PhoneCallDemo />
+            <motion.div
+              id="try-mia"
+              variants={fadeUp}
+              className="w-full lg:justify-self-end scroll-mt-24"
+            >
+              <PhoneCallDemo businessName={displayBusiness} agentName="Mia" />
+            </motion.div>
+          </motion.section>
+
+          {/* ─── BENEFIT STRIP — four outcome pills, sub-hero ─── */}
+          <motion.section
+            className="mb-28 md:mb-36"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerContainer}
+          >
+            <motion.div
+              variants={fadeUp}
+              className="flex flex-wrap items-center justify-center gap-3 md:gap-4"
+            >
+              {[
+                "24/7 cover",
+                "15 languages",
+                "Viewings by morning",
+                "Flat monthly pricing",
+              ].map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full text-[14px] font-semibold"
+                  style={{
+                    background: PALETTE.creamSoft,
+                    color: PALETTE.ink,
+                    border: `1px solid ${PALETTE.rule}`,
+                    letterSpacing: "0.005em",
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="inline-block w-1.5 h-1.5 rounded-full"
+                    style={{ background: PALETTE.terracotta }}
+                  />
+                  {item}
+                </span>
+              ))}
             </motion.div>
           </motion.section>
 
@@ -545,7 +670,7 @@ export default function CostaDelSolPage() {
                 className={`${SERIF} mt-4 text-[clamp(2rem,4.2vw,3.4rem)] leading-[1.05] tracking-[-0.015em]`}
                 style={{ color: PALETTE.ink, fontWeight: 500 }}
               >
-                <span className="block">She greets your caller in their own language.</span>
+                <span className="block">Fifteen languages. One less reason to hang up.</span>
                 <span
                   className="block mt-1"
                   style={{ fontStyle: "italic", color: PALETTE.muted }}
@@ -765,7 +890,7 @@ export default function CostaDelSolPage() {
                       {w.title}
                     </h3>
                     <p
-                      className="mt-4 text-[16px] leading-[1.7]"
+                      className="mt-4 text-[17px] leading-[1.7]"
                       style={{ color: PALETTE.inkSoft }}
                     >
                       {w.body}
@@ -790,7 +915,7 @@ export default function CostaDelSolPage() {
                 className={`${SERIF} mt-4 text-[clamp(2rem,4.2vw,3.4rem)] leading-[1.05] tracking-[-0.015em]`}
                 style={{ color: PALETTE.ink, fontWeight: 500 }}
               >
-                <span className="block">Monday, 22:47 PM.</span>
+                <span className="block">Monday, 22:47.</span>
                 <span
                   className="block mt-1"
                   style={{ fontStyle: "italic", color: PALETTE.muted }}
@@ -995,13 +1120,13 @@ export default function CostaDelSolPage() {
                       )}
                     </div>
                     <div className="leading-tight">
-                      <div className="text-[13px] font-semibold" style={{ color: PALETTE.ink }}>
+                      <div className="text-[14.5px] font-semibold" style={{ color: PALETTE.ink }}>
                         {t.name}
                       </div>
-                      <div className="text-[12px] mt-0.5" style={{ color: PALETTE.muted }}>
+                      <div className="text-[13px] mt-1" style={{ color: PALETTE.muted }}>
                         {t.role} · {t.firm}
                       </div>
-                      <div className="text-[11px] mt-0.5" style={{ color: PALETTE.muted, fontStyle: "italic" }}>
+                      <div className="text-[12px] mt-0.5" style={{ color: PALETTE.muted, fontStyle: "italic" }}>
                         {t.city}
                       </div>
                     </div>
@@ -1276,19 +1401,19 @@ export default function CostaDelSolPage() {
                 className={`${SERIF} mt-4 text-[clamp(2rem,4.2vw,3.4rem)] leading-[1.05] tracking-[-0.015em]`}
                 style={{ color: PALETTE.ink, fontWeight: 500 }}
               >
-                <span className="block">Every call Mia handled.</span>
+                <span className="block">The business Mia saved last week.</span>
                 <span
                   className="block mt-1"
                   style={{ fontStyle: "italic", color: PALETTE.muted }}
                 >
-                  In one place, when you want the bigger picture.
+                  Counted, by call, by language, by day.
                 </span>
               </h2>
               <p
                 className="mt-5 text-[16px] leading-[1.65] max-w-2xl"
                 style={{ color: PALETTE.inkSoft }}
               >
-                Messages land on your phone in real time — but when you want to look across the week, see which languages your callers spoke, or export everything to your CRM, it's all in the dashboard.
+                Messages land on your phone in real time. The dashboard is for when you want to see how many calls Mia took, where your international buyers came from, or export the week to your CRM.
               </p>
             </motion.div>
 
@@ -1649,8 +1774,34 @@ export default function CostaDelSolPage() {
                 className="mt-5 text-[16px] leading-[1.65]"
                 style={{ color: PALETTE.inkSoft }}
               >
-                One-time €500 build fee, then flat monthly. 30-day money-back, no forms. Cancel anytime.
+                One-time €500 build fee, then flat monthly. 30-day money-back, no forms.
               </p>
+            </motion.div>
+
+            {/* Reassurance pills */}
+            <motion.div
+              variants={fadeUp}
+              className="mb-8 flex flex-wrap items-center justify-center gap-2.5"
+            >
+              {["Cancel anytime", "Month-to-month", "Live in 3 days"].map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-[12.5px] font-semibold"
+                  style={{
+                    background: PALETTE.creamSoft,
+                    color: PALETTE.inkSoft,
+                    border: `1px solid ${PALETTE.rule}`,
+                    letterSpacing: "0.005em",
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="inline-block w-1.5 h-1.5 rounded-full"
+                    style={{ background: PALETTE.terracotta }}
+                  />
+                  {item}
+                </span>
+              ))}
             </motion.div>
 
             {/* Billing toggle */}
@@ -2073,13 +2224,13 @@ export default function CostaDelSolPage() {
                   </div>
                   <div>
                     <div
-                      className="text-[13px] font-semibold leading-tight"
+                      className="text-[14px] font-semibold leading-tight"
                       style={{ color: PALETTE.ink }}
                     >
                       {i.name}
                     </div>
                     <div
-                      className="mt-1 text-[9px] font-bold tracking-[0.18em] uppercase"
+                      className="mt-1 text-[10px] font-bold tracking-[0.18em] uppercase"
                       style={{ color: PALETTE.muted }}
                     >
                       {i.category}
@@ -2289,7 +2440,7 @@ export default function CostaDelSolPage() {
                   >
                     {item.q}
                   </h3>
-                  <p className="text-[15px] leading-[1.7]" style={{ color: PALETTE.inkSoft }}>
+                  <p className="text-[16.5px] leading-[1.7]" style={{ color: PALETTE.inkSoft }}>
                     {item.a}
                   </p>
                 </motion.div>
@@ -2328,9 +2479,9 @@ export default function CostaDelSolPage() {
                   className={`${SERIF} text-[clamp(2rem,4.5vw,3.4rem)] leading-[1.05] tracking-[-0.015em] max-w-3xl mx-auto`}
                   style={{ fontWeight: 500 }}
                 >
-                  Two minutes is all it takes to judge if she's good enough{" "}
+                  Two minutes with Mia.{" "}
                   <span style={{ fontStyle: "italic", color: PALETTE.terracotta }}>
-                    for your phones.
+                    Your next booked viewing.
                   </span>
                 </h2>
                 <p

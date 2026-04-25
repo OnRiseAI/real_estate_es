@@ -57,10 +57,77 @@ function WifiIcon({ className }) {
   );
 }
 
+function BatteryIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 26 12" fill="none">
+      <rect x="0.6" y="0.6" width="21" height="10.8" rx="2.4" stroke="currentColor" strokeWidth="1" opacity="0.55" />
+      <rect x="2.2" y="2.2" width="15" height="7.6" rx="1.2" fill="currentColor" />
+      <rect x="22.6" y="4" width="1.6" height="4" rx="0.6" fill="currentColor" opacity="0.55" />
+    </svg>
+  );
+}
+
 function formatTime(secs) {
   const mm = String(Math.floor(secs / 60)).padStart(2, "0");
   const ss = String(secs % 60).padStart(2, "0");
   return `${mm}:${ss}`;
+}
+
+// UK ring tone: 400Hz + 450Hz dual-tone, pattern 0.4s on / 0.2s off / 0.4s on / 2.0s off
+// (one cycle = 3s). Plays exactly 2 cycles then auto-cleans up. Returns a controller
+// with .stop() so callers can cut it short the moment Mia picks up.
+function startUkRingTone({ rings = 2, gain = 0.18 } = {}) {
+  if (typeof window === "undefined") return null;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+
+  const ctx = new AudioCtx();
+  const master = ctx.createGain();
+  master.gain.value = 0;
+  master.connect(ctx.destination);
+
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  osc1.type = "sine";
+  osc2.type = "sine";
+  osc1.frequency.value = 400;
+  osc2.frequency.value = 450;
+  osc1.connect(master);
+  osc2.connect(master);
+  osc1.start();
+  osc2.start();
+
+  const now = ctx.currentTime;
+  // Each ring = 0.4s tone + 0.2s gap + 0.4s tone, then 2.0s silence before next cycle.
+  const scheduleCycle = (offset) => {
+    master.gain.setValueAtTime(0, now + offset);
+    master.gain.linearRampToValueAtTime(gain, now + offset + 0.04);
+    master.gain.setValueAtTime(gain, now + offset + 0.40);
+    master.gain.linearRampToValueAtTime(0, now + offset + 0.44);
+    master.gain.setValueAtTime(0, now + offset + 0.60);
+    master.gain.linearRampToValueAtTime(gain, now + offset + 0.64);
+    master.gain.setValueAtTime(gain, now + offset + 1.00);
+    master.gain.linearRampToValueAtTime(0, now + offset + 1.04);
+  };
+  for (let i = 0; i < rings; i++) scheduleCycle(i * 3);
+
+  // Auto cleanup once the last ring has fully played.
+  const autoStop = setTimeout(() => {
+    try { osc1.stop(); osc2.stop(); ctx.close(); } catch {}
+  }, rings * 3000 + 200);
+
+  return {
+    stop() {
+      clearTimeout(autoStop);
+      try {
+        master.gain.cancelScheduledValues(ctx.currentTime);
+        master.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
+        setTimeout(() => {
+          try { osc1.stop(); osc2.stop(); ctx.close(); } catch {}
+        }, 100);
+      } catch {}
+    },
+  };
 }
 
 function useClock() {
@@ -91,6 +158,14 @@ export default function PhoneCallDemo({
   const roomRef = useRef(null);
   const audioElRef = useRef(null);
   const startTimeRef = useRef(0);
+  const ringRef = useRef(null);
+
+  const stopRing = () => {
+    if (ringRef.current) {
+      ringRef.current.stop();
+      ringRef.current = null;
+    }
+  };
 
   const clock = useClock();
 
@@ -107,11 +182,19 @@ export default function PhoneCallDemo({
     setErrorMsg("");
     setDuration(0);
 
+    // Start UK ring tone synchronously inside the click handler so mobile
+    // browsers grant audio permission via the user gesture.
+    stopRing();
+    ringRef.current = startUkRingTone({ rings: 2 });
+
     try {
       const tokenRes = await fetch("/api/livekit-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(businessName ? { business_name: businessName } : {}),
+        body: JSON.stringify({
+          ...(businessName ? { business_name: businessName } : {}),
+          caller_local_hour: new Date().getHours(),
+        }),
       });
       if (!tokenRes.ok) throw new Error(`Token request failed (${tokenRes.status})`);
       const { serverUrl, participantToken } = await tokenRes.json();
@@ -121,8 +204,10 @@ export default function PhoneCallDemo({
       roomRef.current = room;
 
       room.on(RoomEvent.TrackSubscribed, (track) => {
-        if (track.kind === Track.Kind.Audio && audioElRef.current) {
-          track.attach(audioElRef.current);
+        if (track.kind === Track.Kind.Audio) {
+          // Mia just "picked up" — kill the ring tone immediately.
+          stopRing();
+          if (audioElRef.current) track.attach(audioElRef.current);
         }
       });
 
@@ -156,6 +241,7 @@ export default function PhoneCallDemo({
       });
     } catch (err) {
       console.error("PhoneCallDemo error", err);
+      stopRing();
       setErrorMsg(err?.message || "Could not start the call");
       setState(STATES.ERROR);
       if (roomRef.current) {
@@ -165,6 +251,7 @@ export default function PhoneCallDemo({
   }
 
   async function endCall() {
+    stopRing();
     if (roomRef.current) {
       try { await roomRef.current.disconnect(); } catch {}
       roomRef.current = null;
@@ -181,10 +268,12 @@ export default function PhoneCallDemo({
 
   useEffect(() => {
     return () => {
+      stopRing();
       if (roomRef.current) {
         try { roomRef.current.disconnect(); } catch {}
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const statusLabel =
@@ -205,7 +294,7 @@ export default function PhoneCallDemo({
     : subtitleIdle;
 
   return (
-    <div className="relative w-full max-w-[380px] mx-auto">
+    <div className="relative w-full max-w-[240px] sm:max-w-[280px] lg:max-w-[300px] mx-auto">
       <audio ref={audioElRef} autoPlay playsInline />
 
       {/* Soft ambient warm glow behind phone */}
@@ -230,9 +319,27 @@ export default function PhoneCallDemo({
             "0 50px 100px -30px rgba(27,30,40,0.45), 0 0 0 1px rgba(232,144,118,0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
         }}
       >
-        {/* Inner content — stack: identity | photo | cta */}
-        <div className="flex flex-col h-full px-8 py-12">
-          {/* Identity — top */}
+        {/* Inner content — stack: status | identity | photo | cta */}
+        <div className="flex flex-col h-full px-7 pt-5 pb-12">
+          {/* Status bar */}
+          <div className="flex items-center justify-between mb-10">
+            <div
+              className="text-[12px] font-semibold tabular-nums"
+              style={{ color: "rgba(245,239,228,0.82)", letterSpacing: "0.01em" }}
+            >
+              {clock}
+            </div>
+            <div
+              className="flex items-center gap-[7px]"
+              style={{ color: "rgba(245,239,228,0.72)" }}
+            >
+              <SignalBars className="h-[9px] w-auto" />
+              <WifiIcon className="h-[9px] w-auto" />
+              <BatteryIcon className="h-[11px] w-auto" />
+            </div>
+          </div>
+
+          {/* Identity */}
           <div className="text-center">
             <div
               className="text-[9px] font-bold tracking-[0.32em] uppercase mb-3"
@@ -266,7 +373,7 @@ export default function PhoneCallDemo({
             >
               {state === STATES.ACTIVE
                 ? formatTime(duration)
-                : "AI receptionist · Costa del Sol"}
+                : "Costa del Sol"}
             </div>
           </div>
 
