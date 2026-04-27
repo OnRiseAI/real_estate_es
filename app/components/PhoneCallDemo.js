@@ -154,6 +154,14 @@ export default function PhoneCallDemo({
   const [agentSpeaking, setAgentSpeaking] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [duration, setDuration] = useState(0);
+  const [formName, setFormName] = useState("");
+  const [formBusiness, setFormBusiness] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formSubmitting, setFormSubmitting] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [livekitRoomName, setLivekitRoomName] = useState(null);
 
   const roomRef = useRef(null);
   const audioElRef = useRef(null);
@@ -197,8 +205,9 @@ export default function PhoneCallDemo({
         }),
       });
       if (!tokenRes.ok) throw new Error(`Token request failed (${tokenRes.status})`);
-      const { serverUrl, participantToken } = await tokenRes.json();
+      const { serverUrl, participantToken, roomName } = await tokenRes.json();
       if (!serverUrl || !participantToken) throw new Error("Missing token in response");
+      if (roomName) setLivekitRoomName(roomName);
 
       const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
@@ -264,6 +273,45 @@ export default function PhoneCallDemo({
     setState(STATES.IDLE);
     setErrorMsg("");
     setDuration(0);
+    setFormName("");
+    setFormBusiness("");
+    setFormEmail("");
+    setFormPhone("");
+    setFormSubmitting(false);
+    setFormSubmitted(false);
+    setFormError(null);
+    setLivekitRoomName(null);
+  }
+
+  async function handleFormSubmit(e) {
+    e.preventDefault();
+    setFormError(null);
+    setFormSubmitting(true);
+    try {
+      const res = await fetch("/api/lead-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formName.trim(),
+          business: formBusiness.trim(),
+          email: formEmail.trim(),
+          phone: formPhone.trim(),
+          source: "demo_post_call",
+          duration_sec: duration,
+          page_url: typeof window !== "undefined" ? window.location.href : "",
+          captured_at: new Date().toISOString(),
+          livekit_session_id: livekitRoomName,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`Submit failed (${res.status})`);
+      }
+      setFormSubmitted(true);
+    } catch (err) {
+      setFormError(err.message || "Something went wrong. Try again.");
+    } finally {
+      setFormSubmitting(false);
+    }
   }
 
   useEffect(() => {
@@ -339,45 +387,46 @@ export default function PhoneCallDemo({
             </div>
           </div>
 
-          {/* Identity */}
-          <div className="text-center">
-            <div
-              className="text-[9px] font-bold tracking-[0.32em] uppercase mb-3"
-              style={{ color: "#E89076", opacity: 0.9 }}
-            >
-              {state === STATES.IDLE
-                ? "Live demo"
-                : state === STATES.CONNECTING
-                ? "Connecting"
-                : state === STATES.ACTIVE
-                ? "On call"
-                : state === STATES.ENDED
-                ? "Call ended"
-                : "Error"}
+          {/* Identity — hidden post-call to free body space for form */}
+          {state !== STATES.ENDED && (
+            <div className="text-center">
+              <div
+                className="text-[9px] font-bold tracking-[0.32em] uppercase mb-3"
+                style={{ color: "#E89076", opacity: 0.9 }}
+              >
+                {state === STATES.IDLE
+                  ? "Live demo"
+                  : state === STATES.CONNECTING
+                  ? "Connecting"
+                  : state === STATES.ACTIVE
+                  ? "On call"
+                  : "Error"}
+              </div>
+              <div
+                className="leading-none"
+                style={{
+                  fontFamily: "Fraunces, serif",
+                  fontWeight: 500,
+                  fontSize: 34,
+                  color: "#F5EFE4",
+                  letterSpacing: "-0.015em",
+                }}
+              >
+                {agentName}
+              </div>
+              <div
+                className="text-[11px] mt-2 font-medium"
+                style={{ color: "rgba(245,239,228,0.45)", letterSpacing: "0.02em" }}
+              >
+                {state === STATES.ACTIVE
+                  ? formatTime(duration)
+                  : "Costa del Sol"}
+              </div>
             </div>
-            <div
-              className="leading-none"
-              style={{
-                fontFamily: "Fraunces, serif",
-                fontWeight: 500,
-                fontSize: 34,
-                color: "#F5EFE4",
-                letterSpacing: "-0.015em",
-              }}
-            >
-              {agentName}
-            </div>
-            <div
-              className="text-[11px] mt-2 font-medium"
-              style={{ color: "rgba(245,239,228,0.45)", letterSpacing: "0.02em" }}
-            >
-              {state === STATES.ACTIVE
-                ? formatTime(duration)
-                : "Costa del Sol"}
-            </div>
-          </div>
+          )}
 
-          {/* Photo — hero */}
+          {/* Photo — hero (hidden when call ended; small chip shown above form instead) */}
+          {state !== STATES.ENDED && (
           <div className="flex-1 flex items-center justify-center py-8">
             <div className="relative" style={{ width: 196, height: 196 }}>
               {/* Idle pulse rings */}
@@ -459,15 +508,16 @@ export default function PhoneCallDemo({
               />
             </div>
           </div>
+          )}
 
-          {/* CTA — bottom */}
-          <div className="flex flex-col items-center gap-3">
+          {/* CTA — bottom (becomes body when call ended) */}
+          <div className={`flex flex-col items-center gap-3 ${state === STATES.ENDED ? "flex-1 justify-center" : ""}`}>
             {state === STATES.IDLE && (
               <>
                 <button
                   type="button"
                   onClick={startCall}
-                  aria-label="Tap to call Mia"
+                  aria-label="Tap to talk to Mia"
                   className="px-8 py-3.5 rounded-full text-[13px] font-bold tracking-[0.04em] transition-all"
                   style={{
                     background: "#A6472E",
@@ -484,7 +534,7 @@ export default function PhoneCallDemo({
                     e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >
-                  Tap to call Mia
+                  Tap to talk
                 </button>
                 <div
                   className="text-[9px] font-bold tracking-[0.24em] uppercase"
@@ -559,28 +609,214 @@ export default function PhoneCallDemo({
               </>
             )}
 
-            {state === STATES.ENDED && (
+            {state === STATES.ENDED && !formSubmitted && (
               <>
+                <div className="flex items-center justify-center gap-2.5 mb-1">
+                  <div
+                    className="rounded-full overflow-hidden flex-shrink-0"
+                    style={{
+                      width: 38,
+                      height: 38,
+                      boxShadow: "0 0 0 1.5px rgba(232,144,118,0.3)",
+                    }}
+                  >
+                    <img
+                      src="/mia.png"
+                      alt={agentName}
+                      onError={(e) => {
+                        e.currentTarget.style.visibility = "hidden";
+                      }}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col leading-tight">
+                    <div
+                      className="text-[8px] font-bold tracking-[0.28em] uppercase"
+                      style={{ color: "#E89076", opacity: 0.9 }}
+                    >
+                      Call ended
+                    </div>
+                    <div
+                      className="text-[12px] mt-0.5"
+                      style={{ color: "rgba(245,239,228,0.85)" }}
+                    >
+                      {agentName} ·{" "}
+                      <span className="tabular-nums">{formatTime(duration)}</span>
+                    </div>
+                  </div>
+                </div>
+                <form
+                  onSubmit={handleFormSubmit}
+                  className="w-full max-w-[280px] flex flex-col gap-2.5 mt-2"
+                >
+                  <div
+                    className="text-[13px] font-semibold text-center"
+                    style={{ color: "#F5EFE4" }}
+                  >
+                    Want Mia answering your phone?
+                  </div>
+                  <div
+                    className="text-[10px] text-center mb-1 leading-relaxed"
+                    style={{ color: "rgba(245,239,228,0.5)" }}
+                  >
+                    We&rsquo;ll email you a recap of the call and follow up within 24 hours.
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="First name"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    disabled={formSubmitting}
+                    autoComplete="given-name"
+                    className="px-4 py-2.5 rounded-full text-[13px] outline-none focus:border-[rgba(245,239,228,0.4)]"
+                    style={{
+                      background: "rgba(245,239,228,0.07)",
+                      color: "#F5EFE4",
+                      border: "1px solid rgba(245,239,228,0.15)",
+                    }}
+                  />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Business name"
+                    value={formBusiness}
+                    onChange={(e) => setFormBusiness(e.target.value)}
+                    disabled={formSubmitting}
+                    autoComplete="organization"
+                    className="px-4 py-2.5 rounded-full text-[13px] outline-none focus:border-[rgba(245,239,228,0.4)]"
+                    style={{
+                      background: "rgba(245,239,228,0.07)",
+                      color: "#F5EFE4",
+                      border: "1px solid rgba(245,239,228,0.15)",
+                    }}
+                  />
+                  <input
+                    type="email"
+                    required
+                    placeholder="Email"
+                    value={formEmail}
+                    onChange={(e) => setFormEmail(e.target.value)}
+                    disabled={formSubmitting}
+                    autoComplete="email"
+                    className="px-4 py-2.5 rounded-full text-[13px] outline-none focus:border-[rgba(245,239,228,0.4)]"
+                    style={{
+                      background: "rgba(245,239,228,0.07)",
+                      color: "#F5EFE4",
+                      border: "1px solid rgba(245,239,228,0.15)",
+                    }}
+                  />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="+34 600 000 000"
+                    value={formPhone}
+                    onChange={(e) => setFormPhone(e.target.value)}
+                    disabled={formSubmitting}
+                    autoComplete="tel"
+                    className="px-4 py-2.5 rounded-full text-[13px] outline-none focus:border-[rgba(245,239,228,0.4)]"
+                    style={{
+                      background: "rgba(245,239,228,0.07)",
+                      color: "#F5EFE4",
+                      border: "1px solid rgba(245,239,228,0.15)",
+                    }}
+                  />
+                  {formError && (
+                    <div
+                      className="text-[10px] text-center"
+                      style={{ color: "#E89076" }}
+                    >
+                      {formError}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={formSubmitting}
+                    className="px-7 py-3 rounded-full text-[12px] font-bold tracking-[0.04em] transition-all mt-1"
+                    style={{
+                      background: formSubmitting ? "#6B6258" : "#A6472E",
+                      color: "#F5EFE4",
+                      boxShadow:
+                        "0 14px 36px -8px rgba(166,71,46,0.6), inset 0 1px 0 rgba(255,255,255,0.15)",
+                      cursor: formSubmitting ? "wait" : "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!formSubmitting) e.currentTarget.style.background = "#8A3A27";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!formSubmitting) e.currentTarget.style.background = "#A6472E";
+                    }}
+                  >
+                    {formSubmitting ? "Sending…" : "Get a callback →"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    disabled={formSubmitting}
+                    className="text-[10px] tracking-[0.18em] uppercase mt-1 transition-colors hover:text-[rgba(245,239,228,0.7)]"
+                    style={{ color: "rgba(245,239,228,0.4)" }}
+                  >
+                    ← Try another call
+                  </button>
+                </form>
+              </>
+            )}
+
+            {state === STATES.ENDED && formSubmitted && (
+              <>
+                <div className="flex items-center justify-center gap-2.5 mb-2">
+                  <div
+                    className="rounded-full overflow-hidden flex-shrink-0"
+                    style={{
+                      width: 38,
+                      height: 38,
+                      boxShadow: "0 0 0 1.5px rgba(232,144,118,0.3)",
+                    }}
+                  >
+                    <img
+                      src="/mia.png"
+                      alt={agentName}
+                      onError={(e) => {
+                        e.currentTarget.style.visibility = "hidden";
+                      }}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-col leading-tight">
+                    <div
+                      className="text-[8px] font-bold tracking-[0.28em] uppercase"
+                      style={{ color: "#E89076", opacity: 0.9 }}
+                    >
+                      Call ended
+                    </div>
+                    <div
+                      className="text-[12px] mt-0.5"
+                      style={{ color: "rgba(245,239,228,0.85)" }}
+                    >
+                      {agentName} ·{" "}
+                      <span className="tabular-nums">{formatTime(duration)}</span>
+                    </div>
+                  </div>
+                </div>
                 <div
-                  className="text-[11px]"
+                  className="text-[16px] font-semibold text-center max-w-[260px]"
+                  style={{ color: "#F5EFE4", fontFamily: "Fraunces, serif" }}
+                >
+                  Thanks{formName ? `, ${formName}` : ""}.
+                </div>
+                <div
+                  className="text-[11px] text-center max-w-[260px] leading-relaxed"
                   style={{ color: "rgba(245,239,228,0.55)" }}
                 >
-                  Duration · {formatTime(duration)}
+                  Check your inbox for the call recap. We&rsquo;ll follow up within 24 hours.
                 </div>
                 <button
                   type="button"
                   onClick={reset}
-                  className="px-7 py-3 rounded-full text-[12px] font-bold tracking-[0.04em] transition-all"
-                  style={{
-                    background: "#A6472E",
-                    color: "#F5EFE4",
-                    boxShadow:
-                      "0 14px 36px -8px rgba(166,71,46,0.6), inset 0 1px 0 rgba(255,255,255,0.15)",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#8A3A27")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "#A6472E")}
+                  className="text-[10px] tracking-[0.18em] uppercase mt-3 transition-colors hover:text-[rgba(245,239,228,0.7)]"
+                  style={{ color: "rgba(245,239,228,0.4)" }}
                 >
-                  Call again
+                  ← Try another call
                 </button>
               </>
             )}
