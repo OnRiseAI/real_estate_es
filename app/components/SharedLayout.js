@@ -15,12 +15,24 @@ function PhoneIcon({ className }) {
 // Editorial route config — pages that opt out of the default dark layout.
 const EDITORIAL_ROUTES = ["/", "/demo"];
 
+// Bare routes — render children as-is, no marketing chrome at all.
+// These pages own their own backgrounds + headers (auth pages, dashboard,
+// per-call review pages on the app subdomain).
+const BARE_ROUTES = ["/sign-in", "/sign-up", "/dashboard", "/calls"];
+
 function isEditorialRoute(pathname) {
   if (!pathname) return false;
   return EDITORIAL_ROUTES.some((p) => {
     if (p === "/") return pathname === "/";
     return pathname === p || pathname.startsWith(`${p}/`);
   });
+}
+
+function isBareRoute(pathname) {
+  if (!pathname) return false;
+  return BARE_ROUTES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
 }
 
 function DefaultHeader() {
@@ -157,6 +169,12 @@ function EditorialFooter() {
 
 export default function SharedLayout({ children }) {
   const pathname = usePathname();
+
+  // Bare routes (auth, dashboard, /calls/[id]) provide their own chrome.
+  if (isBareRoute(pathname)) {
+    return <>{children}</>;
+  }
+
   const editorial = isEditorialRoute(pathname);
 
   if (editorial) {
