@@ -196,11 +196,11 @@ export default function DemoPage() {
           transition={{ duration: 0.5, delay: 0.5 }}
         >
           <Link
-            href="/costa-del-sol"
+            href="/"
             className="inline-flex items-center gap-2 text-[14px] font-semibold underline underline-offset-[6px] decoration-1"
             style={{ color: PALETTE.sea }}
           >
-            ← Back to the Costa del Sol page
+            ← Back to home
           </Link>
         </motion.div>
       </div>

@@ -13,11 +13,14 @@ function PhoneIcon({ className }) {
 }
 
 // Editorial route config — pages that opt out of the default dark layout.
-const EDITORIAL_ROUTES = ["/costa-del-sol", "/demo"];
+const EDITORIAL_ROUTES = ["/", "/demo"];
 
 function isEditorialRoute(pathname) {
   if (!pathname) return false;
-  return EDITORIAL_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  return EDITORIAL_ROUTES.some((p) => {
+    if (p === "/") return pathname === "/";
+    return pathname === p || pathname.startsWith(`${p}/`);
+  });
 }
 
 function DefaultHeader() {

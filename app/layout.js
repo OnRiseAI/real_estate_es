@@ -2,15 +2,18 @@ import "./globals.css";
 import SharedLayout from "./components/SharedLayout";
 
 export const metadata = {
-  title: "Voice AI Receptionist for Realtors — Never miss a Zillow lead again",
+  title: "AI Receptionist for Costa del Sol Real Estate Agents | 24/7 English-Speaking",
   description:
-    "AI receptionist built for real estate. Answers every Zillow, Realtor.com, and missed call 24/7. Books showings into Follow Up Boss, kvCORE, Sierra, BoomTown. Flat monthly pricing. 30-day money-back.",
+    "24/7 English-speaking AI voice receptionist for real estate agents on the Costa del Sol. From Sotogrande to Nerja — Mia answers every call, qualifies international buyers, and books viewings into your CRM. Flat monthly pricing in euros.",
   metadataBase: new URL("https://realestate.voiceaireceptionists.com"),
+  alternates: {
+    canonical: "https://realestate.voiceaireceptionists.com/",
+  },
   openGraph: {
-    title: "Voice AI Receptionist for Realtors",
+    title: "AI Receptionist for Costa del Sol Real Estate Agents",
     description:
-      "Built for real estate. Answers every call, qualifies the lead, books the showing. Native FUB, kvCORE, Sierra, BoomTown.",
-    url: "https://realestate.voiceaireceptionists.com",
+      "Built for the Costa del Sol. English-speaking 24/7, covers Sotogrande to Nerja, books viewings straight into your calendar. €99/mo.",
+    url: "https://realestate.voiceaireceptionists.com/",
     siteName: "Voice AI Receptionist",
     type: "website",
     images: [
@@ -18,15 +21,15 @@ export const metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Voice AI Receptionist for Realtors",
+        alt: "AI Receptionist for Costa del Sol Real Estate Agents",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Voice AI Receptionist for Realtors",
+    title: "AI Receptionist for Costa del Sol Real Estate Agents",
     description:
-      "Built for real estate. Answers every call, qualifies the lead, books the showing.",
+      "Built for the Costa del Sol. English-speaking 24/7, books viewings into your CRM. €99/mo.",
     images: ["/og-image.png"],
   },
   robots: {

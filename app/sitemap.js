@@ -9,7 +9,6 @@ export default function sitemap() {
 
   const fixed = [
     { url: `${BASE}/`, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
-    { url: `${BASE}/costa-del-sol`, lastModified: now, changeFrequency: "weekly", priority: 0.95 },
     { url: `${BASE}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE}/demo`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${BASE}/integrations`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
