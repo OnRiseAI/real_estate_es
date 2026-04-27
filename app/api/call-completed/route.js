@@ -11,7 +11,8 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 
 const SUMMARY_MODEL = process.env.SUMMARY_MODEL || "gpt-4.1-mini";
-const KV_TTL_SECONDS = 60 * 60;
+// Match the R2 lifecycle (90-day auto-delete) so KV record + recording expire together.
+const KV_TTL_SECONDS = 60 * 60 * 24 * 90;
 
 function formatTranscriptForPrompt(transcript) {
   if (!Array.isArray(transcript)) return "";
@@ -72,7 +73,8 @@ export async function POST(request) {
     return Response.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { session_id, room_name, duration_sec, transcript } = payload || {};
+  const { session_id, room_name, duration_sec, transcript, recording_key, egress_id } =
+    payload || {};
   if (!session_id) {
     return Response.json(
       { ok: false, error: "Missing session_id" },
@@ -87,6 +89,8 @@ export async function POST(request) {
       room_name,
       duration_sec,
       transcript_turns: Array.isArray(transcript) ? transcript.length : 0,
+      recording_key: recording_key || null,
+      egress_id: egress_id || null,
     })
   );
 
@@ -98,6 +102,8 @@ export async function POST(request) {
     duration_sec: typeof duration_sec === "number" ? duration_sec : null,
     summary: summary || null,
     transcript: Array.isArray(transcript) ? transcript : [],
+    recording_key: recording_key || null,
+    egress_id: egress_id || null,
     stored_at: new Date().toISOString(),
   };
 

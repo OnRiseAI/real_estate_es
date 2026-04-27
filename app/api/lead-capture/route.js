@@ -14,6 +14,8 @@ const FROM_ADDRESS =
   process.env.LEAD_FROM_EMAIL || "Mia <onboarding@resend.dev>";
 const TO_ADDRESS = process.env.LEAD_NOTIFY_TO;
 const REPLY_TO = process.env.LEAD_REPLY_TO || "jon@onrise.ai";
+const DASHBOARD_BASE =
+  process.env.DASHBOARD_BASE_URL || "https://app.voiceaireceptionists.com";
 
 const SUMMARY_POLL_TIMEOUT_MS = 10_000;
 const SUMMARY_POLL_INTERVAL_MS = 750;
@@ -73,10 +75,13 @@ function formatDuration(durationSec) {
 }
 
 function buildInternalEmail(payload, callRecord) {
-  const { name, business, email, phone, duration_sec, page_url, captured_at } =
+  const { name, business, email, phone, duration_sec, page_url, captured_at, livekit_session_id } =
     payload;
   const dur = formatDuration(duration_sec);
   const summary = callRecord?.summary || null;
+  const dashboardUrl = livekit_session_id
+    ? `${DASHBOARD_BASE}/calls/${encodeURIComponent(livekit_session_id)}`
+    : null;
 
   const subject = `New demo lead — ${escapeHtml(name)} at ${escapeHtml(business)}`;
 
@@ -110,9 +115,21 @@ function buildInternalEmail(payload, callRecord) {
   <div style="padding:16px;background:#F5EFE4;border-radius:8px;font-size:13px;color:#6B6258;line-height:1.5">
     They tried Mia for ${dur} and asked to be called back. Reach out within 24 hours.
   </div>
+
+  ${
+    dashboardUrl
+      ? `<div style="margin-top:24px;text-align:center">
+    <a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;padding:12px 22px;background:#A6472E;color:#F5EFE4;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:0.04em;border-radius:24px">
+      🎧 Listen to the call →
+    </a>
+  </div>`
+      : ""
+  }
 </div>`.trim();
 
-  const text = `New demo lead\n\n${name} · ${business}${summaryBlockText}\n\nEmail: ${email}\nPhone: ${phone}\nDemo duration: ${dur}\nPage: ${page_url}\nCaptured: ${captured_at}\n\nThey tried Mia for ${dur} and asked to be called back. Reach out within 24 hours.`;
+  const text = `New demo lead\n\n${name} · ${business}${summaryBlockText}\n\nEmail: ${email}\nPhone: ${phone}\nDemo duration: ${dur}\nPage: ${page_url}\nCaptured: ${captured_at}\n\nThey tried Mia for ${dur} and asked to be called back. Reach out within 24 hours.${
+    dashboardUrl ? `\n\nListen to the call: ${dashboardUrl}` : ""
+  }`;
 
   return { subject, html, text };
 }
