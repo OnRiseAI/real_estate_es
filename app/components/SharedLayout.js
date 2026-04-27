@@ -110,7 +110,7 @@ function EditorialHeader() {
             Pricing
           </Link>
           <Link
-            href="#pricing"
+            href="/demo"
             className="inline-flex text-[13px] font-bold px-4 py-2 rounded-full transition-all"
             style={{
               background: "#C85A3C",
@@ -118,7 +118,7 @@ function EditorialHeader() {
               boxShadow: "0 10px 24px -10px rgba(200,90,60,0.55)",
             }}
           >
-            Get started
+            Talk to Mia
           </Link>
         </div>
       </div>
