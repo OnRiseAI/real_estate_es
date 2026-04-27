@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 function PhoneIcon({ className }) {
   return (
@@ -35,6 +36,55 @@ function isBareRoute(pathname) {
   );
 }
 
+function AuthLinkEditorial() {
+  const { isSignedIn, isLoaded } = useUser();
+  if (!isLoaded) return null;
+  if (isSignedIn) {
+    return (
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors hover:opacity-80"
+        style={{ color: "#1B4965" }}
+      >
+        Dashboard
+        <span aria-hidden style={{ fontSize: 14 }}>→</span>
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href="/sign-in"
+      className="hidden sm:inline-flex text-[13px] font-semibold transition-colors hover:opacity-80"
+      style={{ color: "#1B4965" }}
+    >
+      Sign in
+    </Link>
+  );
+}
+
+function AuthLinkDefault() {
+  const { isSignedIn, isLoaded } = useUser();
+  if (!isLoaded) return null;
+  if (isSignedIn) {
+    return (
+      <Link
+        href="/dashboard"
+        className="text-[13px] font-semibold text-[#2DD4BF] hover:text-[#5EEAD4] transition-colors"
+      >
+        Dashboard →
+      </Link>
+    );
+  }
+  return (
+    <Link
+      href="/sign-in"
+      className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors"
+    >
+      Sign in
+    </Link>
+  );
+}
+
 function DefaultHeader() {
   return (
     <motion.header
@@ -55,6 +105,7 @@ function DefaultHeader() {
         <div className="hidden sm:flex items-center gap-6">
           <Link href="/pricing" className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors">Pricing</Link>
           <Link href="/integrations" className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors">Integrations</Link>
+          <AuthLinkDefault />
           <Link href="/demo" className="text-[13px] font-semibold text-[#07070A] bg-[#2DD4BF] hover:bg-[#5EEAD4] px-4 py-2 rounded-lg transition-colors">Try the demo</Link>
         </div>
       </div>
@@ -121,6 +172,7 @@ function EditorialHeader() {
           >
             Pricing
           </Link>
+          <AuthLinkEditorial />
           <Link
             href="/demo"
             className="inline-flex text-[13px] font-bold px-4 py-2 rounded-full transition-all"

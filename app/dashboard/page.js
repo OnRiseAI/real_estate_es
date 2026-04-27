@@ -2,6 +2,7 @@ import { Redis } from "@upstash/redis";
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
+import StatusPill from "../components/StatusPill";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -855,7 +856,6 @@ function EnquiryRow({ rec }) {
   const lang = (rec?.language || "EN").toUpperCase();
   const time = formatTime(rec?.stored_at);
   const status = rec?.status || "new";
-  const isPulsing = status === "new";
 
   return (
     <Link
@@ -871,13 +871,7 @@ function EnquiryRow({ rec }) {
       </div>
       <div className="lang-badge">{lang}</div>
       <div className="enquiry-time">{time}</div>
-      <div className={`status-pill${isPulsing ? " pulse" : ""}`}>
-        <span
-          className="status-dot"
-          style={{ background: STATUS_DOT[status] || "var(--muted)" }}
-        />
-        {STATUS_LABELS[status] || status}
-      </div>
+      <StatusPill sessionId={sid} initialStatus={status} />
     </Link>
   );
 }
