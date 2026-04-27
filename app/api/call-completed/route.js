@@ -31,37 +31,61 @@ function formatTranscriptForPrompt(transcript) {
     .join("\n");
 }
 
-async function generateSummary(transcript) {
+async function generateExtraction(transcript) {
   if (!openai) {
-    return null;
+    return { summary: null, language: null, context: null };
   }
   const formatted = formatTranscriptForPrompt(transcript);
   if (!formatted || formatted.length < 20) {
-    return "Caller hung up almost immediately — no meaningful conversation to summarize.";
+    return {
+      summary: "Caller hung up almost immediately — no meaningful conversation to summarize.",
+      language: "EN",
+      context: null,
+    };
   }
 
   try {
     const response = await openai.chat.completions.create({
       model: SUMMARY_MODEL,
       temperature: 0.3,
-      max_tokens: 220,
+      max_tokens: 320,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content:
-            "You write concise post-call summaries for a voice AI receptionist named Mia. The receptionist demos for visitors evaluating Mia for their own business. Write a single 1-2 sentence paragraph (no bullets) capturing: who the caller appears to be, what they wanted to know about, and any concrete details they mentioned (location, timeline, business type, specific feature interest). Be neutral and factual. If the caller barely engaged, say so briefly. Never start with 'The caller' twice; vary openings naturally.",
+            "You analyze post-call transcripts for a voice AI receptionist named Mia. Mia takes calls for real-estate / hospitality / dental / similar businesses. For each transcript, return a JSON object with EXACTLY these three keys: " +
+            "(1) `summary` — a single 1-2 sentence paragraph in neutral natural English capturing who the caller appears to be, what they wanted, and any concrete details (location, timeline, business type, specific feature interest). No bullets. Vary openings naturally. " +
+            "(2) `language` — the caller's primary spoken language as an ISO 639-1 uppercase code (EN, ES, FR, DE, IT, PT, NL, ZH, JA, KO, ID, TR, RU, HI). Default to EN if unclear. " +
+            "(3) `context` — a TIGHT one-line property-or-topic snippet, max 40 chars, in title case, e.g., '3-bed villa, Mijas' or 'Crown lengthening consult' or 'Sunday booking, party of 8'. Just the concrete thing they were calling about. If the caller didn't say anything specific, return null. " +
+            "If the caller barely engaged, summary still describes that briefly, language is EN, context is null. " +
+            "Output ONLY the JSON object, nothing else.",
         },
         {
           role: "user",
-          content: `Conversation transcript:\n\n${formatted}`,
+          content: `Transcript:\n\n${formatted}`,
         },
       ],
     });
-    const content = response.choices?.[0]?.message?.content?.trim() || null;
-    return content;
+    const content = response.choices?.[0]?.message?.content?.trim() || "{}";
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (err) {
+      console.error("[CALL COMPLETED] Failed to parse extraction JSON", err, content);
+      return { summary: null, language: null, context: null };
+    }
+    const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : null;
+    const language = typeof parsed.language === "string"
+      ? parsed.language.trim().toUpperCase().slice(0, 3)
+      : null;
+    const context = typeof parsed.context === "string"
+      ? parsed.context.trim().slice(0, 60)
+      : null;
+    return { summary, language, context };
   } catch (err) {
-    console.error("[CALL COMPLETED] Summary generation failed", err);
-    return null;
+    console.error("[CALL COMPLETED] Extraction failed", err);
+    return { summary: null, language: null, context: null };
   }
 }
 
@@ -94,16 +118,19 @@ export async function POST(request) {
     })
   );
 
-  const summary = await generateSummary(transcript);
+  const { summary, language, context } = await generateExtraction(transcript);
 
   const record = {
     session_id,
     room_name: room_name || null,
     duration_sec: typeof duration_sec === "number" ? duration_sec : null,
     summary: summary || null,
+    language: language || "EN",
+    context: context || null,
     transcript: Array.isArray(transcript) ? transcript : [],
     recording_key: recording_key || null,
     egress_id: egress_id || null,
+    status: "new",
     stored_at: new Date().toISOString(),
   };
 
@@ -119,5 +146,10 @@ export async function POST(request) {
     );
   }
 
-  return Response.json({ ok: true, summary_generated: !!summary });
+  return Response.json({
+    ok: true,
+    summary_generated: !!summary,
+    language,
+    context,
+  });
 }
