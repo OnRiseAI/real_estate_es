@@ -261,6 +261,29 @@ export async function POST(request) {
         livekit_session_id
       );
     }
+
+    // Merge lead info into the KV record so the dashboard listing can display
+    // name/business/email/phone alongside the call summary. Best-effort — if
+    // KV write fails, we still send the emails.
+    try {
+      const merged = {
+        ...(callRecord || { session_id: livekit_session_id }),
+        lead: {
+          name: payload.name || null,
+          business: payload.business || null,
+          email: payload.email || null,
+          phone: payload.phone || null,
+          captured_at: payload.captured_at || new Date().toISOString(),
+        },
+        lead_captured_at: payload.captured_at || new Date().toISOString(),
+      };
+      await redis.set(`call:${livekit_session_id}`, JSON.stringify(merged), {
+        ex: 60 * 60 * 24 * 90,
+      });
+      callRecord = merged;
+    } catch (err) {
+      console.error("[LEAD CAPTURE] KV merge of lead info failed", err);
+    }
   }
 
   if (!resend) {
