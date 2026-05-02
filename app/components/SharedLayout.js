@@ -15,6 +15,7 @@ function PhoneIcon({ className }) {
 
 // Editorial route config — pages that opt out of the default dark layout.
 const EDITORIAL_ROUTES = ["/", "/demo"];
+const APP_URL = "https://app.voiceaireceptionists.com";
 
 // Bare routes — render children as-is, no marketing chrome at all.
 // These pages own their own backgrounds + headers (auth pages, dashboard,
@@ -42,7 +43,7 @@ function AuthLinkEditorial() {
   if (isSignedIn) {
     return (
       <Link
-        href="/dashboard"
+        href={`${APP_URL}/dashboard`}
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold transition-colors hover:opacity-80"
         style={{ color: "#1B4965" }}
       >
@@ -53,7 +54,7 @@ function AuthLinkEditorial() {
   }
   return (
     <Link
-      href="/sign-in"
+      href={`${APP_URL}/sign-in`}
       className="hidden sm:inline-flex text-[13px] font-semibold transition-colors hover:opacity-80"
       style={{ color: "#1B4965" }}
     >
@@ -68,7 +69,7 @@ function AuthLinkDefault() {
   if (isSignedIn) {
     return (
       <Link
-        href="/dashboard"
+        href={`${APP_URL}/dashboard`}
         className="text-[13px] font-semibold text-[#2DD4BF] hover:text-[#5EEAD4] transition-colors"
       >
         Dashboard →
@@ -77,7 +78,7 @@ function AuthLinkDefault() {
   }
   return (
     <Link
-      href="/sign-in"
+      href={`${APP_URL}/sign-in`}
       className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors"
     >
       Sign in
