@@ -106,6 +106,7 @@ function DefaultHeader() {
         <div className="hidden sm:flex items-center gap-6">
           <Link href="/pricing" className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors">Pricing</Link>
           <Link href="/integrations" className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors">Integrations</Link>
+          <Link href={`${APP_URL}/dashboard`} className="text-[13px] font-semibold text-[#A0A0AB] hover:text-white transition-colors">Live dashboard</Link>
           <AuthLinkDefault />
           <Link href="/demo" className="text-[13px] font-semibold text-[#07070A] bg-[#2DD4BF] hover:bg-[#5EEAD4] px-4 py-2 rounded-lg transition-colors">Try the demo</Link>
         </div>
@@ -172,6 +173,13 @@ function EditorialHeader() {
             style={{ color: "#1B4965" }}
           >
             Pricing
+          </Link>
+          <Link
+            href={`${APP_URL}/dashboard`}
+            className="hidden sm:inline-flex text-[13px] font-semibold transition-colors hover:opacity-80"
+            style={{ color: "#1B4965" }}
+          >
+            Live dashboard
           </Link>
           <AuthLinkEditorial />
           <Link
